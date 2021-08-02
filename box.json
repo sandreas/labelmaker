@@ -1,3 +1,5 @@
 {
-
+  "base-path": null,
+  "main": "src/index.php",
+  "output": "dist/labelmaker.phar"
 }

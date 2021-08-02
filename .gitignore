@@ -1,5 +1,6 @@
 .idea/
+dist/
 vendor/
-vendor-bin/*
+vendor-bin/
 !vendor-bin/box/composer.json
 !vendor-bin/box/composer.lock
