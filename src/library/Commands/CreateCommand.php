@@ -1,12 +1,12 @@
 <?php
 
 namespace LabelMaker\Commands;
-use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Console\Command\Command;
 
 
-class CreateCommand extends Command
+class CreateCommand extends AbstractCommand
 {
     // the name of the command (the part after "bin/console")
     protected static $defaultName = 'create';
@@ -22,7 +22,7 @@ class CreateCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $output->write("hello world 2");
+        $this->warning('testing');
 
         // ... put here the code to create the user
 

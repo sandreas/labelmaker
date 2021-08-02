@@ -8,6 +8,7 @@
         "bamarni/composer-bin-plugin": "^1.4"
     },
     "require": {
-        "symfony/console": "^5.3"
+        "symfony/console": "^5.3",
+        "psr/log": "^1|^2"
     }
 }
