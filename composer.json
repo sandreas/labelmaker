@@ -9,6 +9,10 @@
     },
     "require": {
         "symfony/console": "^5.3",
-        "psr/log": "^1|^2"
+        "psr/log": "^1|^2",
+        "dompdf/dompdf": "^1.0",
+        "twig/twig": "^3.0",
+        "james-heinrich/getid3": "^1.9",
+        "mintware-de/streams": "^1.0"
     }
 }

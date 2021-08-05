@@ -1,9 +1,17 @@
 <?php
+
 require __DIR__.'/../vendor/autoload.php';
+
+// Dompdf\Image
+spl_autoload_register(function($className) {
+    // "\\Dompdf\\Image\\Cache"
+    if(stripos($className, "Dompdf") !== false) {
+    echo $className.PHP_EOL;
+     }
+}, true, true);
 
 use Symfony\Component\Console\Application;
 use LabelMaker\Commands\CreateCommand;
-
 
 
 
@@ -30,6 +38,7 @@ try {
         new CreateCommand(),
     ];
     $application->addCommands($commands);
+    $application->setDefaultCommand($commands[0]->getName());
     $application->run();
 } catch (Exception $e) {
     echo "uncaught exception: " . $e->getMessage();

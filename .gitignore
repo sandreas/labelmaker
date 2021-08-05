@@ -1,5 +1,7 @@
 .idea/
 dist/
+var/*
+!var/**.gitkeep
 vendor/
 vendor-bin/
 !vendor-bin/box/composer.json
