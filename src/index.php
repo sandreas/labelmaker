@@ -1,14 +1,7 @@
 <?php
+declare(strict_types=1);
 
 require __DIR__.'/../vendor/autoload.php';
-
-// Dompdf\Image
-spl_autoload_register(function($className) {
-    // "\\Dompdf\\Image\\Cache"
-    if(stripos($className, "Dompdf") !== false) {
-    echo $className.PHP_EOL;
-     }
-}, true, true);
 
 use Symfony\Component\Console\Application;
 use LabelMaker\Commands\CreateCommand;
@@ -29,11 +22,16 @@ if (!ini_get('date.timezone')) {
     date_default_timezone_set($timezone);
 }
 
+// fix macintosh line endings
+if (!ini_get("auto_detect_line_endings")) {
+    ini_set("auto_detect_line_endings", '1');
+}
 
 $application = new Application("labelmaker");
 
 try {
     $application = new Application('labelmaker', '@package_version@');
+
     $commands = [
         new CreateCommand(),
     ];

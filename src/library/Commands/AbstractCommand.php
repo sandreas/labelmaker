@@ -37,7 +37,7 @@ abstract class AbstractCommand extends Command implements LoggerInterface
         $className = get_class($this);
         $commandName = $this->dasherize(substr($className, strrpos($className, '\\') + 1, -7));
         $this->setName($commandName);
-        $this->addArgument(static::ARGUMENT_INPUT, InputArgument::REQUIRED, 'Input file or folder');
+        // $this->addArgument(static::ARGUMENT_INPUT, InputArgument::REQUIRED, 'Input file or folder');
 //        $this->addOption(static::OPTION_LOG_FILE, null, InputOption::VALUE_OPTIONAL, "file to log all output", "");
 //        $this->addOption(static::OPTION_DEBUG, null, InputOption::VALUE_NONE, "enable debug mode - sets verbosity to debug, logfile to m4b-tool.log and temporary encoded files are not deleted");
 //        $this->addOption(static::OPTION_FORCE, "f", InputOption::VALUE_NONE, "force overwrite of existing files");

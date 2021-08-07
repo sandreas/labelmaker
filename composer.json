@@ -13,6 +13,8 @@
         "dompdf/dompdf": "^1.0",
         "twig/twig": "^3.0",
         "james-heinrich/getid3": "^1.9",
-        "mintware-de/streams": "^1.0"
+        "mintware-de/streams": "^1.0",
+        "mpdf/mpdf": "^8.0",
+        "guzzlehttp/psr7": "^2.0"
     }
 }
