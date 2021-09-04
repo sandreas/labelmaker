@@ -1,0 +1,56 @@
+body {
+    font-family: sans-serif;
+}
+
+/*
+.lmk-next-page {
+    border-top:2px dotted green;
+}
+*/
+.page-container {
+    padding-top:3mm;
+}
+
+.card {
+    width:83.8mm;
+    height:52.4mm;
+    float:left;
+    border:1px dotted white;
+    margin-left:2mm;
+}
+.right {
+    margin-left:7mm;
+}
+.img {
+    padding-top:15px;
+}
+
+.text {
+    text-align:center;
+    width:50%;
+}
+
+/*
+.card__table td {
+    width:100%;
+    border:2px solid red;
+}
+*/
+
+.first-char {
+    font-size:40pt;
+}
+
+.second-line {
+    font-size:11pt;
+}
+
+.animal-name {
+    font-size:18pt;
+}
+.spacer5 {
+    font-size:8pt;
+}
+.spacer3 {
+    font-size:3pt;
+}

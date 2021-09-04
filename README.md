@@ -4,6 +4,11 @@
 - [ ] add `--theme` parameter for template+css packages (e.g. in form of a zip file)
 - [ ] fix and test `mediadir` reader
 
+## themes
+- default values are the lowest prio "fallback" - page-template has no fallback
+- `--theme` is the second lowest prio "fallback"
+- `--page-template` will be used for override, if a file is present in the current folder?
+
 ## Via data file
 ```bash
 labelmaker --document-template="document.twig" --document-css="docment.css" --page-template="page.twig" --data-file="csv:///home/user/file.csv" --count-per-page=8

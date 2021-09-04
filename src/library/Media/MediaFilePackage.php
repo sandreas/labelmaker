@@ -6,8 +6,14 @@ use SplFileInfo;
 
 class MediaFilePackage
 {
-    /** @var MediaFile[] */
-    public array $files;
-    public array $pageTemplates;
     public ?SplFileInfo $path;
+
+    public ?SplFileInfo $pageTemplate;
+
+    public MediaFile $mediaFile;
+
+    /** @var SplFileInfo[] */
+    public array $directoryFiles = [];
+
+    public array $pageTemplates = [];
 }

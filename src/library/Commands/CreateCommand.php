@@ -3,13 +3,19 @@
 namespace LabelMaker\Commands;
 
 use Exception;
+use getID3;
 use GuzzleHttp\Psr7\Uri;
+use LabelMaker\Api\LabelMakerApi;
+use LabelMaker\Media\Loader\MediaFileTagLoaderComposite;
+use LabelMaker\Media\Loader\Mp3Loader;
+use LabelMaker\Media\Loader\Mp4Loader;
 use LabelMaker\Options\CreateOptions;
 use LabelMaker\Pdf\DompdfEngine;
 use LabelMaker\Pdf\EngineInterface;
 use LabelMaker\Pdf\MpdfEngine;
 use LabelMaker\Pdf\PdfRenderer;
 use LabelMaker\Reader\CsvReader;
+use LabelMaker\Reader\MediaDirReader;
 use LabelMaker\Reader\NullReader;
 use LabelMaker\Reader\ReaderInterface;
 use Mpdf\Mpdf;
@@ -30,6 +36,7 @@ class CreateCommand extends AbstractCommand
     const OPT_DATA_URI = "data-uri";
     const OPT_DATA_RECORDS_PER_PAGE = "data-records-per-page";
     const OPT_OUTPUT_FILE = "output-file";
+    const OPT_THEME = "theme";
 
     protected static $defaultName = 'create';
     protected array $extensions = ["txt", "jpg"];
@@ -62,9 +69,12 @@ class CreateCommand extends AbstractCommand
             $options = $this->loadOptions($input);
             $pdfEngine = $this->createPdfEngine($options);
             $recordLoader = $this->createRecordReader($options);
-            $renderer = new PdfRenderer($pdfEngine, $recordLoader, $options);
+            $api = new LabelMakerApi();
 
-            file_put_contents($options->outputFile, $renderer->render());
+
+
+            $renderer = new PdfRenderer($recordLoader, $api, $options);
+            file_put_contents($options->outputFile, $renderer->render($pdfEngine));
 
 
         } catch (Exception $e) {
@@ -165,7 +175,11 @@ class CreateCommand extends AbstractCommand
                 return new CsvReader($options->dataUri, $options->dataRecordsPerPage);
 
             case CreateOptions::SCHEME_MEDIA_DIR:
-                return new MediaDirReader($options->dataUri);
+                $tagLoader = new MediaFileTagLoaderComposite(new getID3, [
+                    new Mp3Loader(),
+                    new Mp4Loader()
+                ]);
+                return new MediaDirReader($tagLoader, $options->dataUri, $options->dataRecordsPerPage, $options->pageTemplates);
 
         }
         throw new Exception(sprintf("Invalid engine: %s", $options->pdfEngine));
