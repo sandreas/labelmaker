@@ -6,6 +6,7 @@ use Exception;
 use LabelMaker\Api\LabelMakerApi;
 use LabelMaker\Reader\ReaderInterface;
 use LabelMaker\Options\CreateOptions;
+use LabelMaker\Themes\Theme;
 use MintWare\Streams\MemoryStream;
 use Twig\Environment;
 use Twig\Loader\ArrayLoader;
@@ -26,38 +27,37 @@ class PdfRenderer
     /**
      * @throws Exception
      */
-    public function render(EngineInterface $engine): MemoryStream
+    public function render(EngineInterface $engine, Theme $theme): MemoryStream
     {
         $pageRecordSets = $this->buildPageRecordSets();
         $htmlPages = [];
 
-        // todo: integrate ThemeLoaders
+        if ($theme->dataHook) {
+            // todo: use generators / yield
+            $pageRecordSets = ($theme->dataHook)($pageRecordSets);
+        }
 
         if (count($pageRecordSets) === 0) {
-            foreach ($this->options->pageTemplates as $index => $pageTemplate) {
+            foreach ($theme->pageTemplates as $index => $pageTemplate) {
                 $htmlPages[] = $this->renderPageTemplate($pageTemplate, $index, []);
             }
         } else {
             foreach ($pageRecordSets as $index => $data) {
-                $pageTemplate = current($this->options->pageTemplates);
-                $htmlPages[] = $this->renderPageTemplate($pageTemplate, $index, $data);
+                $pageTemplate = current($theme->pageTemplates);
 
-                if (!next($this->options->pageTemplates)) {
-                    reset($this->options->pageTemplates);
+                $htmlPages[] = $this->renderPageTemplate($pageTemplate, $index, $data);
+                if (!next($theme->pageTemplates)) {
+                    reset($theme->pageTemplates);
                 }
             }
         }
 
-        $documentTemplate = $this->options->documentTemplate ? file_get_contents($this->options->documentTemplate) : CreateOptions::DEFAULT_DOCUMENT_TEMPLATE;
-        $documentCss = $this->options->documentCss ? file_get_contents($this->options->documentCss) : CreateOptions::DEFAULT_DOCUMENT_CSS;
-
-
         $loader = new ArrayLoader([
-            'document' => $documentTemplate,
+            'document' => $theme->documentTemplate,
         ]);
         $twig = new Environment($loader);
         $html = $twig->render('document', [
-            'css' => $documentCss,
+            'css' => $theme->documentCss,
             'html' => implode("", $htmlPages)
         ]);
 
@@ -84,28 +84,8 @@ class PdfRenderer
      */
     private function renderPageTemplate(string $pageTemplate, int $pageIndex, array $pageRecords): string
     {
-        if (!is_file($pageTemplate)) {
-            // seek first page template in data
-
-            foreach ($pageRecords as $record) {
-                if (is_array($record) && isset($record["pageTemplate"])) {
-                    $pageTemplate = $record["pageTemplate"];
-                    break;
-                }
-
-                if (is_object($record) && property_exists($record, "pageTemplate")) {
-                    $pageTemplate = $record->pageTemplate;
-                    break;
-                }
-            }
-
-            if (!is_file($pageTemplate)) {
-                throw new Exception(sprintf("Could not find page template: %s", $pageRecords["pageTemplate"] ?? " - "));
-            }
-        }
-
         $loader = new ArrayLoader([
-            'page' => file_get_contents($pageTemplate),
+            'page' => $pageTemplate,
         ]);
         $twig = new Environment($loader);
         return $twig->render('page', [

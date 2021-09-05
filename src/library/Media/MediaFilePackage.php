@@ -6,9 +6,9 @@ use SplFileInfo;
 
 class MediaFilePackage
 {
-    public ?SplFileInfo $path;
+    public ?SplFileInfo $path=null;
 
-    public ?SplFileInfo $pageTemplate;
+    public ?SplFileInfo $pageTemplate=null;
 
     public MediaFile $mediaFile;
 

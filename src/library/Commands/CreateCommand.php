@@ -6,6 +6,7 @@ use Exception;
 use getID3;
 use GuzzleHttp\Psr7\Uri;
 use LabelMaker\Api\LabelMakerApi;
+use LabelMaker\Media\Loader\FallbackLoader;
 use LabelMaker\Media\Loader\MediaFileTagLoaderComposite;
 use LabelMaker\Media\Loader\Mp3Loader;
 use LabelMaker\Media\Loader\Mp4Loader;
@@ -18,8 +19,12 @@ use LabelMaker\Reader\CsvReader;
 use LabelMaker\Reader\MediaDirReader;
 use LabelMaker\Reader\NullReader;
 use LabelMaker\Reader\ReaderInterface;
+use LabelMaker\Themes\Loaders\ThemeCompositeThemeLoader;
+use LabelMaker\Themes\Loaders\ThemeDefaultsLoader;
+use LabelMaker\Themes\Loaders\ThemeDirectoryFileLoader;
+use LabelMaker\Themes\Loaders\ThemeFileLoader;
+use LabelMaker\Themes\Theme;
 use Mpdf\Mpdf;
-use Mpdf\MpdfException;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -32,7 +37,9 @@ class CreateCommand extends AbstractCommand
     const OPT_PDF_ENGINE = "pdf-engine";
     const OPT_DOCUMENT_TEMPLATE = "document-template";
     const OPT_DOCUMENT_CSS = "document-css";
+    const OPT_OMIT_DEFAULT_CSS = "omit-default-css";
     const OPT_PAGE_TEMPLATE = "page-template";
+    const OPT_DATA_HOOK = "data-hook";
     const OPT_DATA_URI = "data-uri";
     const OPT_DATA_RECORDS_PER_PAGE = "data-records-per-page";
     const OPT_OUTPUT_FILE = "output-file";
@@ -58,23 +65,48 @@ class CreateCommand extends AbstractCommand
         $this->addOption(static::OPT_DOCUMENT_TEMPLATE, null, InputOption::VALUE_OPTIONAL, "path to custom document-template (otherwise the internal default will be used)");
         $this->addOption(static::OPT_DOCUMENT_CSS, null, InputOption::VALUE_OPTIONAL, "path to custom document-css (otherwise the internal default will be used)");
         $this->addOption(static::OPT_PAGE_TEMPLATE, null, InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY, "path to page-template (if more than one is provided, the sequence will be repeated till the end of pages)");
+        $this->addOption(static::OPT_DATA_HOOK, null, InputOption::VALUE_OPTIONAL, "path to custom data hook function to convert or prepare data before rendering the pdf");
+
+        $this->addOption(static::OPT_THEME, null, InputOption::VALUE_OPTIONAL, "location of a custom theme containing templates and hooks to render a pdf (a theme is a shorthand for other template options)");
+
         $this->addOption(static::OPT_DATA_URI, null, InputOption::VALUE_OPTIONAL, "tries to load data from specified uri and provide it as variables for the page template");
         $this->addOption(static::OPT_DATA_RECORDS_PER_PAGE, null, InputOption::VALUE_OPTIONAL, sprintf("splits records loaded from --%s in chunks of this size before injecting into --%s", static::OPT_DATA_URI, static::OPT_PAGE_TEMPLATE), 0);
         $this->addOption(static::OPT_OUTPUT_FILE, null, InputOption::VALUE_REQUIRED, "specifies the output file");
+        $this->addOption(static::OPT_OMIT_DEFAULT_CSS, null, InputOption::VALUE_NONE, "prevent labelmaker prepending normalize.css and providing some default classes prefixed with lmk- (e.g. .lmk-next-page)");
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         try {
             $options = $this->loadOptions($input);
-            $pdfEngine = $this->createPdfEngine($options);
+            $pdfEngine = $this->createPdfEngine($options->pdfEngine);
+
+
             $recordLoader = $this->createRecordReader($options);
             $api = new LabelMakerApi();
 
 
+            $themeLoader = new ThemeCompositeThemeLoader();
+            $themeLoader->add(new ThemeDirectoryFileLoader($options->theme));
+            $themeLoader->add(new ThemeFileLoader($options->documentTemplate, $options->documentCss, $options->pageTemplates, $options->dataHook));
+            $themeLoader->add(new ThemeDefaultsLoader(CreateOptions::DEFAULT_DOCUMENT_TEMPLATE));
+            $theme = $themeLoader->load(new Theme());
+
+            if(!$input->getOption(static::OPT_OMIT_DEFAULT_CSS)) {
+                $theme->documentCss = CreateOptions::DEFAULT_DOCUMENT_CSS . $theme->documentCss;
+            }
+
+            $violations = $this->validateTheme($theme);
+            if(count($violations) > 0) {
+                foreach($violations as $message) {
+                    $this->error($message);
+                }
+                return Command::FAILURE;
+            }
+
 
             $renderer = new PdfRenderer($recordLoader, $api, $options);
-            file_put_contents($options->outputFile, $renderer->render($pdfEngine));
+            file_put_contents($options->outputFile, $renderer->render($pdfEngine, $theme));
 
 
         } catch (Exception $e) {
@@ -93,8 +125,21 @@ class CreateCommand extends AbstractCommand
     protected function loadOptions(InputInterface $input): CreateOptions
     {
         $dataUri = $input->getOption(static::OPT_DATA_URI);
-        if($dataUri && stripos($dataUri, "://") === false) {
-            $dataUri = "file://" . $dataUri;
+        // if format is not url, assume that a mediadir is used and encode its components via rawurlencode
+        if ($dataUri && stripos($dataUri, "://") === false) {
+            if (!file_exists($dataUri)) {
+                throw new Exception(sprintf("the location of --%s does not exist (file_exists(%s))", static::OPT_DATA_URI, $dataUri));
+            }
+            $realPath = realpath($dataUri);
+            if ($realPath === false) {
+                throw new Exception(sprintf("the location of --%s does not exist (realpath)", static::OPT_DATA_URI));
+            }
+
+            $encodedPathParts = array_map(function ($pathPart) {
+                return rawurlencode($pathPart);
+            }, explode(DIRECTORY_SEPARATOR, $realPath));
+
+            $dataUri = sprintf("%s://%s", CreateOptions::SCHEME_FILE, implode("/", $encodedPathParts));
         }
 
         $options = new CreateOptions();
@@ -102,53 +147,33 @@ class CreateCommand extends AbstractCommand
         $options->documentTemplate = $input->getOption(static::OPT_DOCUMENT_TEMPLATE);
         $options->documentCss = $input->getOption(static::OPT_DOCUMENT_CSS);
         $options->pageTemplates = $input->getOption(static::OPT_PAGE_TEMPLATE);
-        $options->dataUri = $input->getOption(static::OPT_DATA_URI) ? new Uri($dataUri) : null;
+        $options->dataHook = $input->getOption(static::OPT_DATA_HOOK);
+        $options->theme = $input->getOption(static::OPT_THEME);
+        $options->dataUri = $dataUri ? new Uri($dataUri) : null;
         $options->dataRecordsPerPage = $input->getOption(static::OPT_DATA_RECORDS_PER_PAGE);
         $options->outputFile = $input->getOption(static::OPT_OUTPUT_FILE);
-
-
-        $this->ensureFileExists($options->documentTemplate, sprintf("--%s file %s does not exist", static::OPT_DOCUMENT_TEMPLATE, $options->documentTemplate));
-        $this->ensureFileExists($options->documentCss, sprintf("--%s file %s does not exist", static::OPT_DOCUMENT_CSS, $options->documentCss));
-
-        if(count($options->pageTemplates) === 0) {
-            throw new Exception(sprintf("at least one --%s is required", static::OPT_PAGE_TEMPLATE));
-        }
-
-//        // todo: improve this part
-//        if($options->dataUri && $options->dataUri->getScheme() === CreateOptions::SCHEME_MEDIA_DIR) {
-//            $this->debug("scheme %s will be used, page-templates are getting validated on lookup");
-//            return $options;
-//        }
-//
-//        foreach($options->pageTemplates as $pageTemplate) {
-//            $this->ensureFileExists($pageTemplate, sprintf("--%s files %s does not exist", static::OPT_PAGE_TEMPLATE, $pageTemplate));
-//        }
 
         return $options;
     }
 
-    /**
-     * @throws Exception
-     */
-    protected function ensureFileExists($file, string $message) {
-        if($file === null) {
-            return;
-        }
+    protected function validateTheme(Theme $theme): array{
+        $violations = [];
+        // todo: validate theme
+        return $violations;
 
-        if(!file_exists($file)) {
-            throw new Exception($message);
-        }
+
     }
 
+
     /**
-     * @param CreateOptions $options
+     * @param string $pdfEngine
      * @return EngineInterface
      * @throws Exception
      */
-    public function createPdfEngine(CreateOptions $options): EngineInterface
+    public function createPdfEngine(string $pdfEngine): EngineInterface
     {
-        // todo: add generic options
-        switch ($options->pdfEngine) {
+        // todo: add generic options for different engines
+        switch ($pdfEngine) {
             case CreateOptions::PDF_ENGINE_MPDF:
                 $mpdf = new Mpdf(['tempDir' => sys_get_temp_dir()]);
                 $mpdf->img_dpi = 300;
@@ -158,7 +183,7 @@ class CreateCommand extends AbstractCommand
                 $dompdf->setPaper('A4');
                 return new DompdfEngine($dompdf);
         }
-        throw new Exception(sprintf("Invalid engine: %s", $options->pdfEngine));
+        throw new Exception(sprintf("Invalid engine: %s", $pdfEngine));
     }
 
     /**
@@ -166,15 +191,16 @@ class CreateCommand extends AbstractCommand
      */
     public function createRecordReader(CreateOptions $options): ReaderInterface
     {
-        if(!$options->dataUri) {
+        if (!$options->dataUri) {
             return new NullReader();
         }
-        // todo: add generic options
+
+
         switch ($options->dataUri->getScheme()) {
             case CreateOptions::SCHEME_CSV:
                 return new CsvReader($options->dataUri, $options->dataRecordsPerPage);
 
-            case CreateOptions::SCHEME_MEDIA_DIR:
+            case CreateOptions::SCHEME_FILE:
                 $tagLoader = new MediaFileTagLoaderComposite(new getID3, [
                     new Mp3Loader(),
                     new Mp4Loader()
