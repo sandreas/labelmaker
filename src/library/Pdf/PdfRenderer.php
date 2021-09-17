@@ -33,7 +33,7 @@ class PdfRenderer
         $htmlPages = [];
 
         if ($theme->dataHook) {
-            // todo: use generators / yield
+            // todo: use generator
             $pageRecordSets = ($theme->dataHook)($pageRecordSets);
         }
 

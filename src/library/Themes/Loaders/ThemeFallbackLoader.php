@@ -4,7 +4,7 @@ namespace LabelMaker\Themes\Loaders;
 
 use LabelMaker\Themes\Theme;
 
-class ThemeDefaultsLoader implements ThemeLoaderInterface
+class ThemeFallbackLoader implements ThemeLoaderInterface
 {
     private string $document;
 

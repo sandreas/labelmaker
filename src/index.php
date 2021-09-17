@@ -6,7 +6,9 @@ require __DIR__.'/../vendor/autoload.php';
 use Symfony\Component\Console\Application;
 use LabelMaker\Commands\CreateCommand;
 
-
+// allow mpdf to include inlined svg
+$pcreBacktrackLimit = $_ENV["LABELMAKER_PCRE_BACKTRACK_LIMIT"] ?? "10000000";
+ini_set("pcre.backtrack_limit", $pcreBacktrackLimit);
 
 register_shutdown_function(function () {
     if (!is_null($e = error_get_last())) {
@@ -31,7 +33,6 @@ $application = new Application("labelmaker");
 
 try {
     $application = new Application('labelmaker', '@package_version@');
-
     $commands = [
         new CreateCommand(),
     ];

@@ -6,10 +6,10 @@ use LabelMaker\Themes\Theme;
 
 class ThemeFileLoader extends AbstractThemeFileLoader
 {
-    private ?string $documentTemplateFile;
-    private ?string $cssFile;
-    private array $pageTemplateFiles;
-    private ?string $dataHookFile;
+    private ?string $documentTemplateFile=null;
+    private ?string $cssFile = null;
+    private array $pageTemplateFiles = [];
+    private ?string $dataHookFile = null;
 
 
     public function __construct(?string $documentFile, ?string $cssFile, array $pageTemplateFiles, ?string $dataHookFile)

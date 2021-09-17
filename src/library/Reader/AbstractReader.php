@@ -11,7 +11,7 @@ abstract class AbstractReader implements ReaderInterface
 
     protected function uriToFilePath(Uri $uri): SplFileInfo
     {
-        return new SplFileInfo($uri->getHost(). $uri->getPath());
+        return new SplFileInfo(rawurldecode($uri->getHost()). rawurldecode($uri->getPath()));
     }
 
     protected function uriToOptions(Uri $uri):array{

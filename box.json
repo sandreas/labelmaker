@@ -1,5 +1,7 @@
 {
   "base-path": null,
   "main": "src/index.php",
-  "output": "dist/labelmaker.phar"
+  "output": "dist/labelmaker.phar",
+  "check-requirements": false,
+  "files": ["vendor/twig/twig/src/TwigTest.php"]
 }

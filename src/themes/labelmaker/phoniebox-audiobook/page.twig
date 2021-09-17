@@ -1,0 +1,45 @@
+{#  title,
+artist, album,
+composer, genre,
+sortTitle, sortAlbum,
+description,
+longDescription,
+copyright,
+encodingTool,
+mediaTypeName,
+trackNumber,
+cover, series, part #}
+
+<div class="page-container {{ page ? 'lmk-next-page' : 'lmk-first-page' }}">
+    {% for pageItem in data %}
+        {% set cover = api.findImage(pageItem.path) %}
+        {% if cover == null %}
+            {% set cover = pageItem.mediaFile.cover %}
+        {% endif %}
+
+        {% set metaDataFilePath = pageItem.path ~ '/metadata.json' %}
+        {% set metaData = [] %}
+
+        {% if api.call('file_exists', metaDataFilePath) %}
+            {% set metaData = api.jsonLoadFile(metaDataFilePath) %}
+        {% else %}
+            {% set metaData = pageItem.mediaFile %}
+        {% endif %}
+
+        <div class="card {{ loop.index % 2 ? "left" : "right"}}">
+            <table class="card__table">
+                <tr>
+                    <td class="img"><img src="{{ cover }}" alt="" class="cover"/></td>
+                    <td class="spacer">&nbsp;</td>
+                    <td class="text">
+                        {% if metaData.series %}
+                            <p class="series">{{ metaData.series }} {{ metaData.part }}</p>
+                            <p class="spacer-m">&nbsp;</p>
+                        {% endif %}
+                        <p class="title">{{ metaData.title }}</p>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    {% endfor %}
+</div>

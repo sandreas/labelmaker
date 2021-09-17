@@ -6,7 +6,6 @@ use Exception;
 use getID3;
 use GuzzleHttp\Psr7\Uri;
 use LabelMaker\Api\LabelMakerApi;
-use LabelMaker\Media\Loader\FallbackLoader;
 use LabelMaker\Media\Loader\MediaFileTagLoaderComposite;
 use LabelMaker\Media\Loader\Mp3Loader;
 use LabelMaker\Media\Loader\Mp4Loader;
@@ -20,8 +19,8 @@ use LabelMaker\Reader\MediaDirReader;
 use LabelMaker\Reader\NullReader;
 use LabelMaker\Reader\ReaderInterface;
 use LabelMaker\Themes\Loaders\ThemeCompositeThemeLoader;
-use LabelMaker\Themes\Loaders\ThemeDefaultsLoader;
-use LabelMaker\Themes\Loaders\ThemeDirectoryFileLoader;
+use LabelMaker\Themes\Loaders\ThemeFallbackLoader;
+use LabelMaker\Themes\Loaders\ThemeLoader;
 use LabelMaker\Themes\Loaders\ThemeFileLoader;
 use LabelMaker\Themes\Theme;
 use Mpdf\Mpdf;
@@ -30,11 +29,14 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Command\Command;
 use Dompdf\Dompdf;
+use Throwable;
 
 
 class CreateCommand extends AbstractCommand
 {
     const OPT_PDF_ENGINE = "pdf-engine";
+    const OPT_PDF_ENGINE_OPTIONS = "pdf-engine-options";
+
     const OPT_DOCUMENT_TEMPLATE = "document-template";
     const OPT_DOCUMENT_CSS = "document-css";
     const OPT_OMIT_DEFAULT_CSS = "omit-default-css";
@@ -46,9 +48,6 @@ class CreateCommand extends AbstractCommand
     const OPT_THEME = "theme";
 
     protected static $defaultName = 'create';
-    protected array $extensions = ["txt", "jpg"];
-    protected string $optPageTemplate = ".labelmaker.page.twig";
-
 
     public function __construct(string $name = null)
     {
@@ -61,6 +60,7 @@ class CreateCommand extends AbstractCommand
         $this->setDescription('create a new pdf output file based on templates in the input directory or a provided theme');
 
         $this->addOption(static::OPT_PDF_ENGINE, null, InputOption::VALUE_OPTIONAL, "pdf engine that should be used (mpdf, dompdf)", CreateOptions::PDF_ENGINE_MPDF);
+        $this->addOption(static::OPT_PDF_ENGINE_OPTIONS, null, InputOption::VALUE_OPTIONAL, "json file with options for PDF engine (mpdf, dompdf)", CreateOptions::PDF_ENGINE_MPDF);
 
         $this->addOption(static::OPT_DOCUMENT_TEMPLATE, null, InputOption::VALUE_OPTIONAL, "path to custom document-template (otherwise the internal default will be used)");
         $this->addOption(static::OPT_DOCUMENT_CSS, null, InputOption::VALUE_OPTIONAL, "path to custom document-css (otherwise the internal default will be used)");
@@ -79,21 +79,26 @@ class CreateCommand extends AbstractCommand
     {
         try {
             $options = $this->loadOptions($input);
-            $pdfEngine = $this->createPdfEngine($options->pdfEngine);
 
+            $pdfEngineOptionsFile = $input->getOption(static::OPT_PDF_ENGINE_OPTIONS);
+            $pdfEngineOptions = [];
+            if($pdfEngineOptionsFile && file_exists($pdfEngineOptionsFile)) {
+                $pdfEngineOptions = json_decode($pdfEngineOptionsFile, true);
+            }
+
+            $pdfEngine = $this->createPdfEngine($options->pdfEngine, $pdfEngineOptions);
 
             $recordLoader = $this->createRecordReader($options);
             $api = new LabelMakerApi();
 
-
             $themeLoader = new ThemeCompositeThemeLoader();
-            $themeLoader->add(new ThemeDirectoryFileLoader($options->theme));
+            $themeLoader->add(new ThemeLoader($options->theme));
             $themeLoader->add(new ThemeFileLoader($options->documentTemplate, $options->documentCss, $options->pageTemplates, $options->dataHook));
-            $themeLoader->add(new ThemeDefaultsLoader(CreateOptions::DEFAULT_DOCUMENT_TEMPLATE));
+            $themeLoader->add(new ThemeFallbackLoader(CreateOptions::DEFAULT_DOCUMENT_TEMPLATE));
             $theme = $themeLoader->load(new Theme());
 
             if(!$input->getOption(static::OPT_OMIT_DEFAULT_CSS)) {
-                $theme->documentCss = CreateOptions::DEFAULT_DOCUMENT_CSS . $theme->documentCss;
+                $theme->documentCss = CreateOptions::DEFAULT_DOCUMENT_CSS . ($theme->documentCss ?? "");
             }
 
             $violations = $this->validateTheme($theme);
@@ -109,7 +114,7 @@ class CreateCommand extends AbstractCommand
             file_put_contents($options->outputFile, $renderer->render($pdfEngine, $theme));
 
 
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
             $this->error(sprintf("An error occured: %s", $e->getMessage()));
             $this->debug(sprintf("Details:%s%s", PHP_EOL, $e->getTraceAsString()));
             return Command::FAILURE;
@@ -158,10 +163,16 @@ class CreateCommand extends AbstractCommand
 
     protected function validateTheme(Theme $theme): array{
         $violations = [];
-        // todo: validate theme
+
+        if(empty($theme->documentTemplate)) {
+            $violations[] = "document template is empty";
+        }
+
+        if(count($theme->pageTemplates) === 0) {
+            $violations[] = "no page template defined";
+        }
+
         return $violations;
-
-
     }
 
 
@@ -170,17 +181,24 @@ class CreateCommand extends AbstractCommand
      * @return EngineInterface
      * @throws Exception
      */
-    public function createPdfEngine(string $pdfEngine): EngineInterface
+    public function createPdfEngine(string $pdfEngine, array $options=[]): EngineInterface
     {
-        // todo: add generic options for different engines
         switch ($pdfEngine) {
+            // https://mpdf.github.io/reference/mpdf-variables/overview.html
             case CreateOptions::PDF_ENGINE_MPDF:
-                $mpdf = new Mpdf(['tempDir' => sys_get_temp_dir()]);
-                $mpdf->img_dpi = 300;
+                if(count($options) === 0) {
+                    $options["img_dpi"] = 300;
+                }
+                // usage in phar fails with default tempdir
+                $options["tempDir"] ??= sys_get_temp_dir()."/".bin2hex(random_bytes(32));
+                if(!is_dir($options["tempDir"])) {
+                    mkdir($options["tempDir"], 755, true);
+                }
+                $mpdf = new Mpdf($options);
                 return new MpdfEngine($mpdf);
+            // https://github.com/dompdf/dompdf/blob/master/src/Options.php
             case CreateOptions::PDF_ENGINE_DOMPDF:
-                $dompdf = new Dompdf();
-                $dompdf->setPaper('A4');
+                $dompdf = new Dompdf($options);
                 return new DompdfEngine($dompdf);
         }
         throw new Exception(sprintf("Invalid engine: %s", $pdfEngine));

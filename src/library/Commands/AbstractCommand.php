@@ -29,6 +29,9 @@ abstract class AbstractCommand extends Command implements LoggerInterface
     {
         parent::initialize($input, $output);
         $this->output = $output;
+        if(getenv("APP_DEBUG") === "1"){
+            $this->output->setVerbosity(OutputInterface::VERBOSITY_DEBUG);
+        }
     }
 
 

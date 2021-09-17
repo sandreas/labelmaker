@@ -14,6 +14,4 @@ class MediaFilePackage
 
     /** @var SplFileInfo[] */
     public array $directoryFiles = [];
-
-    public array $pageTemplates = [];
 }

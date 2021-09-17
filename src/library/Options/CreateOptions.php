@@ -44,7 +44,7 @@ EOT;
     public ?string $theme;
 
     public ?Uri $dataUri;
-    public int $dataRecordsPerPage;
-    public string $outputFile;
+    public int $dataRecordsPerPage=0;
+    public ?string $outputFile="";
 
 }

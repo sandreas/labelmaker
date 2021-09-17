@@ -1,0 +1,53 @@
+body {
+    font-family: sans-serif;
+}
+
+.page-container {
+    padding-top:3mm;
+}
+
+.card {
+    width:83.8mm;
+    height:52.4mm;
+    float:left;
+    margin-left:2mm;
+}
+
+.right {
+    margin-left:7mm;
+}
+
+.cover {
+    height:45mm;
+}
+.text {
+    vertical-align:top;
+    padding:5mm 0.1mm 0 0.1mm;
+}
+
+.spacer-m {
+    height:5px;
+}
+
+.series {
+    font-size:0.8em;
+    color:#666666;
+    line-height:150%;
+}
+
+.title {
+    padding-top:2mm;
+    font-size:1.3em;
+}
+
+.img {
+    padding-top:3px;
+}
+
+/*
+.card__table {
+    width:100%;
+}
+
+
+*/

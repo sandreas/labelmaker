@@ -3,16 +3,13 @@
 namespace LabelMaker\Themes\Loaders;
 
 use Closure;
+use Exception;
 use LabelMaker\Themes\Theme;
+use Throwable;
 
 abstract class AbstractThemeFileLoader implements ThemeLoaderInterface
 {
-    const DOCUMENT_TEMPLATE_FILE = "document.twig";
-    const DOCUMENT_CSS_FILE = "document.css";
-    const DATA_HOOK_FILE = "hook.php";
-    const PAGE_TEMPLATE_FILE = "page.twig";
-    const PAGE_TEMPLATE_FILE_INDEXED = "page-%d.twig";
-    const MAX_PAGE_TEMPLATE_COUNT = 10000;
+
 
     abstract public function load(?Theme $theme): ?Theme;
 
@@ -21,25 +18,10 @@ abstract class AbstractThemeFileLoader implements ThemeLoaderInterface
         return rtrim($path, "\\/") . DIRECTORY_SEPARATOR;
     }
 
-    // https://www.php.net/manual/de/wrappers.compression.php
-    protected function loadFromPath($path, Theme $theme): Theme
-    {
-        $theme->documentTemplate = $this->loadFileTemplate($path . static::DOCUMENT_TEMPLATE_FILE, $theme->documentTemplate);
-        $theme->documentCss = $this->loadFileTemplate($path . static::DOCUMENT_CSS_FILE, $theme->documentCss);
-
-        $theme->dataHook = $this->loadDataHook($path . static::DATA_HOOK_FILE, $theme->dataHook);
-
-
-        $pageTemplateFiles = $this->findThemePageTemplateFiles($path);
-
-        $theme->pageTemplates = $this->loadPageTemplateFiles($pageTemplateFiles, $theme->pageTemplates);
-
-        return $theme;
-    }
-
     protected function loadFileTemplate(?string $filePath, ?string $defaultValue = null): ?string
     {
-        if($filePath === null || !file_exists($filePath)) {
+
+        if($filePath === null || !$this->fileExistsWithWrapperSupport($filePath)) {
             return $defaultValue;
         }
 
@@ -50,12 +32,28 @@ abstract class AbstractThemeFileLoader implements ThemeLoaderInterface
         return $contents;
     }
 
+    /**
+     * @param string|null $filePath
+     * @param Closure|null $default
+     * @return Closure|null
+     * @throws Exception
+     */
     protected function loadDataHook(?string $filePath, ?Closure $default = null): ?Closure
     {
-        if($filePath === null || !file_exists($filePath)) {
+        if($filePath === null || !$this->fileExistsWithWrapperSupport($filePath)) {
             return $default;
         }
+
+        ob_start();
         $dataHook = @include($filePath);
+        ob_end_clean();
+
+//        $output = ob_get_clean();
+//        if(trim($output) !== "") {
+//            throw new Exception(sprintf("output in data hook file %s is not allowed - it must return a function: return function(\$data) { /* ... */ };", $filePath));
+//        }
+
+
         if (is_callable($dataHook)) {
             return Closure::fromCallable($dataHook);
         }
@@ -67,7 +65,7 @@ abstract class AbstractThemeFileLoader implements ThemeLoaderInterface
         $pageTemplates = [];
         foreach ($pageTemplateFiles as $pageTemplateFile) {
             $pageTemplate = $this->loadFileTemplate($pageTemplateFile);
-            if ($pageTemplate) {
+            if ($pageTemplate !== null) {
                 $pageTemplates[] = $pageTemplate;
             }
         }
@@ -79,32 +77,29 @@ abstract class AbstractThemeFileLoader implements ThemeLoaderInterface
     }
 
     /**
-     * @param $path
-     * @return array
+     * file_exists does not support wrappers like zip:// (https://www.php.net/manual/de/wrappers.compression.php)
+     * @param $file
+     * @return bool
      */
-    private function findThemePageTemplateFiles($path): array
-    {
-        $pageTemplateFiles = [];
-        $defaultPageTemplateFile = $path . static::PAGE_TEMPLATE_FILE;
-        if (file_exists($defaultPageTemplateFile)) {
-            $pageTemplateFiles[] = $defaultPageTemplateFile;
+    protected function fileExistsWithWrapperSupport($file):bool {
+
+        $file = (string)$file;
+        if($file === "") {
+            return false;
         }
-
-        $pageTemplateIndex = 1;
-        do {
-            $currentPageTemplateFile = $path . sprintf(static::PAGE_TEMPLATE_FILE_INDEXED, $pageTemplateIndex);
-            $pageTemplateFileExists = file_exists($currentPageTemplateFile);
-            if ($pageTemplateFileExists) {
-                $pageTemplateFiles[] = $currentPageTemplateFile;
+        try {
+            $fp = @fopen($file, "r");
+            if($fp) {
+                fclose($fp);
+                return true;
             }
-
-            $pageTemplateIndex++;
-            if ($pageTemplateIndex > static::MAX_PAGE_TEMPLATE_COUNT) {
-                break;
-            }
-
-        } while ($pageTemplateFileExists);
-        return $pageTemplateFiles;
+            // could not open file results in an error
+            // to prevent shutdown function hick up, clear the last error
+            error_clear_last();
+            return false;
+        } catch(Throwable $t) {
+            return false;
+        }
     }
 
 
