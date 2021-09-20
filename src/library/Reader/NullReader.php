@@ -2,6 +2,8 @@
 
 namespace LabelMaker\Reader;
 
+use Generator;
+
 class NullReader implements ReaderInterface
 {
 
@@ -10,9 +12,9 @@ class NullReader implements ReaderInterface
         return true;
     }
 
-    public function read(): ?array
+    public function read(): Generator
     {
-        return null;
+        yield null;
     }
 
     public function finish(): bool

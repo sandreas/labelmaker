@@ -2,6 +2,7 @@
 
 namespace LabelMaker\Pdf;
 
+use ArrayIterator;
 use Exception;
 use LabelMaker\Api\LabelMakerApi;
 use LabelMaker\Reader\ReaderInterface;
@@ -24,31 +25,57 @@ class PdfRenderer
         $this->options = $options;
     }
 
+
     /**
      * @throws Exception
      */
     public function render(EngineInterface $engine, Theme $theme): MemoryStream
     {
-        $pageRecordSets = $this->buildPageRecordSets();
+        // $pageRecordSets = $this->buildPageRecordSets();
+        if (!$this->reader->prepare()) {
+            throw new Exception("reader prepare failed");
+        }
+//        $pageRecordSets = [];
+//        while ($pageRecordSet = $this->reader->read()) {
+//            $pageRecordSets[] = $pageRecordSet;
+//        }
+//        return $pageRecordSets;
+
         $htmlPages = [];
 
+        $dataRecords = $this->reader->read();
         if ($theme->dataHook) {
-            // todo: use generator
-            $pageRecordSets = ($theme->dataHook)($pageRecordSets);
+            $dataRecords = ($theme->dataHook)($dataRecords);
         }
 
-        if (count($pageRecordSets) === 0) {
+        if(is_array($dataRecords)) {
+            $dataRecords = new ArrayIterator($dataRecords);
+        }
+
+        if (!$dataRecords->valid() || $this->options->dataRecordsPerPage <= 0) {
             foreach ($theme->pageTemplates as $index => $pageTemplate) {
-                $htmlPages[] = $this->renderPageTemplate($pageTemplate, $index, []);
+                $htmlPages[] = $this->renderPageTemplate($pageTemplate, $index, iterator_to_array($dataRecords));
             }
         } else {
-            foreach ($pageRecordSets as $index => $data) {
-                $pageTemplate = current($theme->pageTemplates);
-
-                $htmlPages[] = $this->renderPageTemplate($pageTemplate, $index, $data);
-                if (!next($theme->pageTemplates)) {
-                    reset($theme->pageTemplates);
+            $recordGroup = [];
+            $index = 0;
+            foreach($dataRecords as $record) {
+                if(count($recordGroup) === $this->options->dataRecordsPerPage) {
+                    $pageTemplate = current($theme->pageTemplates);
+                    if (!next($theme->pageTemplates)) {
+                        reset($theme->pageTemplates);
+                    }
+                    $htmlPages[] = $this->renderPageTemplate($pageTemplate, $index, $recordGroup);
+                    $recordGroup = [$record];
+                    $index++;
+                } else {
+                    $recordGroup[] = $record;
                 }
+            }
+
+            if(count($recordGroup) > 0) {
+                $pageTemplate = current($theme->pageTemplates);
+                $htmlPages[] = $this->renderPageTemplate($pageTemplate, $index, $recordGroup);
             }
         }
 
@@ -62,21 +89,6 @@ class PdfRenderer
         ]);
 
         return $engine->htmlToPdf($html);
-    }
-
-    /**
-     * @throws Exception
-     */
-    private function buildPageRecordSets(): array
-    {
-        if (!$this->reader->prepare()) {
-            throw new Exception("reader prepare failed");
-        }
-        $pageRecordSets = [];
-        while ($pageRecordSet = $this->reader->read()) {
-            $pageRecordSets[] = $pageRecordSet;
-        }
-        return $pageRecordSets;
     }
 
     /**

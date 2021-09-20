@@ -5,6 +5,7 @@ namespace LabelMaker\Reader;
 use GuzzleHttp\Psr7\Uri;
 
 use SplFileInfo;
+use Generator;
 
 abstract class AbstractReader implements ReaderInterface
 {
@@ -21,7 +22,7 @@ abstract class AbstractReader implements ReaderInterface
 
     abstract public function prepare(): bool;
 
-    abstract public function read(): ?array;
+    abstract public function read(): Generator;
 
     abstract public function finish(): bool;
 }

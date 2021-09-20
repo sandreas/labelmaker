@@ -216,133 +216,16 @@ class CreateCommand extends AbstractCommand
 
         switch ($options->dataUri->getScheme()) {
             case CreateOptions::SCHEME_CSV:
-                return new CsvReader($options->dataUri, $options->dataRecordsPerPage);
+                return new CsvReader($options->dataUri);
 
             case CreateOptions::SCHEME_FILE:
                 $tagLoader = new MediaFileTagLoaderComposite(new getID3, [
                     new Mp3Loader(),
                     new Mp4Loader()
                 ]);
-                return new MediaDirReader($tagLoader, $options->dataUri, $options->dataRecordsPerPage, $options->pageTemplates);
+                return new MediaDirReader($tagLoader, $options->dataUri);
 
         }
         throw new Exception(sprintf("Invalid engine: %s", $options->pdfEngine));
     }
-
-
-
-//        try {
-//            $pdfEngine = AbstractEngineFactory::createEngine("mpdf");
-//            $api = new Api(new getID3, new MediaFileReader);
-//
-//
-//            $inputPath = $input->getArgument(static::ARGUMENT_INPUT);
-//            if (!is_dir($inputPath)) {
-//                $this->error(sprintf("input path %s is not a directory", $inputPath));
-//                return Command::FAILURE;
-//            }
-//
-//            $paths = $this->loadPathItems($inputPath);
-//            $pathItemGroups = [];
-//            foreach ($paths as $pathItem) {
-//                if ($pathItem->pageTemplate === null) {
-//                    $this->warning(sprintf("no page template for %s", $pathItem->path));
-//                    continue;
-//                }
-//                $key = (string)$pathItem->pageTemplate;
-//                $pathItemGroups[$key] ??= [];
-//                $pathItemGroups[$key][] = $pathItem;
-//            }
-//
-//            $html = "";
-//            foreach ($pathItemGroups as $pageTemplate => $pathItems) {
-//                $loader = new ArrayLoader();
-//                $loader->setTemplate("page", file_get_contents($pageTemplate));
-//                $twig = new Environment($loader);
-//
-//                $pageItems = [];
-//                foreach ($pathItems as $pathItem) {
-//                    $pageItems[] = [
-//                        "path" => $pathItem->path,
-//                        "files" => $pathItem->files // todo: MediaFile, JsonFile, etc.
-//                    ];
-//                }
-//
-//
-//                try {
-//                    $html .= $twig->render('page', [
-//                        'api' => $api,
-//                        'pageItems' => $pageItems
-//                    ]);
-//                } catch (Throwable $e) {
-//                    $this->warning(sprintf("Could not render template %s: %s", $pageTemplate, $e->getMessage()));
-//                    $this->debug($e->getTraceAsString());
-//                }
-//
-//            }
-//            $loader = new ArrayLoader();
-//            $loader->setTemplate("document", $this->documentTemplate);
-//            $twig = new Environment($loader);
-//            $documentHtml = $twig->render('document', [
-//                'html' => $html
-//            ]);
-//        } catch (Exception $e) {
-//            $this->error(sprintf("An error occured: %s", $e->getMessage()));
-//            $this->debug(sprintf("Details:%s%s", PHP_EOL, $e->getTraceAsString()));
-//        }
-
-
-//    /**
-//     * @param $inputPath
-//     * @return PathItem[]
-//     */
-//    protected function loadPathItems($inputPath): array
-//    {
-//        $baseIterator = new RecursiveDirectoryIterator($inputPath);
-//        $innerIterator = new RecursiveIteratorIterator($baseIterator);
-//        $callbackIterator = new CallbackFilterIterator($innerIterator, function (SplFileInfo $file) {
-//            return in_array($file->getExtension(), $this->extensions, true);
-//        });
-//
-//        $paths = [];
-//        foreach ($callbackIterator as $file) {
-//            $path = $file->getPath();
-//            $paths[$path] ??= [];
-//            $paths[$path][] = $file;
-//        }
-//
-//        $pathItems = [];
-//        foreach ($paths as $path => $files) {
-//            $pathItems[] = $this->buildPathItem($inputPath, $path, $files);
-//        }
-//
-//        return $pathItems;
-//    }
-//
-//    protected function buildPathItem($inputPath, $path, $files): PathItem
-//    {
-//        $splPath = new SplFileInfo($path);
-//        $pathItem = new PathItem();
-//        $pathItem->files = $files;
-//        $pathItem->path = new SplFileInfo($path);
-//
-//        $splInputPath = new SplFileInfo($inputPath);
-//        $inputPathLen = strlen($splInputPath);
-//
-//        $pageTemplate = null;
-//        $len = strlen($splPath);
-//        do {
-//            $pageTemplateFile = new SplFileInfo($splPath . "/" . $this->optPageTemplate);
-//            if ($pageTemplateFile->isFile()) {
-//                $pageTemplate = $pageTemplateFile;
-//            }
-//
-//            $splPath = new SplFileInfo($splPath->getPath());
-//            $oldLen = $len;
-//            $len = strlen($splPath);
-//        } while ($len >= $inputPathLen && $len < $oldLen && ($pageTemplate === null/* || $pageItemTemplate === null*/));
-//
-//        $pathItem->pageTemplate = $pageTemplateFile;
-//        return $pathItem;
-//    }
 }

@@ -3,7 +3,9 @@
 namespace LabelMaker\Reader;
 
 use Exception;
+use Generator;
 use GuzzleHttp\Psr7\Uri;
+
 
 class CsvReader extends AbstractReader
 {
@@ -15,14 +17,11 @@ class CsvReader extends AbstractReader
     private string $enclosure = '"';
     private string $escape = "\\";
     private array $headerLine = [];
-    private int $recordsPerPage;
     private bool $hasHeader;
 
-    public function __construct(Uri $uri, int $recordsPerPage)
+    public function __construct(Uri $uri)
     {
         $this->uri = $uri;
-        $this->recordsPerPage = $recordsPerPage;
-
         $options = $this->uriToOptions($this->uri);
         $this->separator = $options["separator"] ?? $this->separator;
         $this->enclosure = $options["enclosure"] ?? $this->enclosure;
@@ -51,22 +50,21 @@ class CsvReader extends AbstractReader
         return true;
     }
 
-    public function read(): ?array
+    public function read(): Generator
     {
-        if (!$this->fp) {
-            return null;
-        }
+//        $file = new SplFileObject("data.csv");
+//        $file->setFlags(SplFileObject::READ_CSV);
+//        $file->setCsvControl(';');
+//        foreach ($file as $row) {
+//            [$dateStringInGermanFormat] = $row;
+//            // ...
+//        }
 
-        $group = [];
-        for($i=0;$i<$this->recordsPerPage;$i++) {
-            $line = fgetcsv($this->fp, 0, $this->separator, $this->enclosure, $this->escape);
-            if ($line === false) {
-                return $i === 0 ? null : $group;
+        if ($this->fp) {
+            while($line = fgetcsv($this->fp, 0, $this->separator, $this->enclosure, $this->escape)) {
+                yield $this->mapHeaders($line);
             }
-            $group[] = $this->mapHeaders($line);
         }
-
-        return $group;
     }
 
     private function mapHeaders(array $line): array

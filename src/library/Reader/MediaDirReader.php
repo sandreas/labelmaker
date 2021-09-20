@@ -5,6 +5,7 @@ namespace LabelMaker\Reader;
 use CallbackFilterIterator;
 use Collator;
 use FilesystemIterator;
+use Generator;
 use GuzzleHttp\Psr7\Uri;
 use LabelMaker\Media\Loader\MediaFileTagLoaderComposite;
 use LabelMaker\Media\MediaFile;
@@ -18,43 +19,27 @@ class MediaDirReader extends AbstractReader
 {
     private MediaFileTagLoaderComposite $tagLoader;
     private Uri $uri;
-    private int $recordsPerPage;
-    private array $pageTemplates = [];
     private array $mediaFileExtensions = ["mp3", "m4b"];
     private array $noStackMediaFileExtensions = ["m4b"];
-    private array $chunkedPackageGroups = [];
-    private ?SplFileInfo $baseMediaPath;
+    private Generator $mediaFilePackages;
 
 
-
-    public function __construct(MediaFileTagLoaderComposite $tagLoader, Uri $uri, int $recordsPerPage, array $pageTemplates)
+    public function __construct(MediaFileTagLoaderComposite $tagLoader, Uri $uri)
     {
         $this->tagLoader = $tagLoader;
         $this->uri = $uri;
-        $this->recordsPerPage = $recordsPerPage;
-        $this->pageTemplates = $pageTemplates;
     }
 
 
     public function prepare(): bool
     {
-        $this->baseMediaPath = $this->uriToFilePath($this->uri);
-        if (!is_dir($this->baseMediaPath)) {
+        $baseMediaPath = $this->uriToFilePath($this->uri);
+        if (!is_dir($baseMediaPath)) {
             return false;
         }
 
-        $paths = $this->loadMediaFilesGroupedByPath($this->baseMediaPath);
-        $mediaFilePackages = $this->buildMediaFilePackages($paths);
-
-        $packageGroups = array_map(function(array $mediaFilePackage) {
-            return array_chunk($mediaFilePackage, $this->recordsPerPage);
-        }, $this->groupMediaFilePackages(...$mediaFilePackages));
-
-        foreach($packageGroups as $packageGroup) {
-            foreach($packageGroup as $package) {
-                $this->chunkedPackageGroups[] = $package;
-            }
-        }
+        $paths = $this->loadMediaFilesGroupedByPath($baseMediaPath);
+        $this->mediaFilePackages = $this->buildMediaFilePackages($paths);
         return true;
     }
 
@@ -136,22 +121,12 @@ class MediaDirReader extends AbstractReader
         return $files;
     }
 
-    public function read(): ?array
+    public function read(): Generator
     {
-        $currentItem = current($this->chunkedPackageGroups);
-        if($currentItem === false) {
-            return null;
-        }
-        next($this->chunkedPackageGroups);
-
-        return $this->loadMediaFileTagsForGroup(...$currentItem);
-    }
-
-    private function loadMediaFileTagsForGroup(MediaFilePackage ...$mediaFilePackages): array {
-        foreach($mediaFilePackages as $package) {
+        foreach($this->mediaFilePackages as $package) {
             $this->tagLoader->enrichMediaFile($package->mediaFile);
+            yield $package;
         }
-        return $mediaFilePackages;
     }
 
     public function finish(): bool
@@ -159,39 +134,22 @@ class MediaDirReader extends AbstractReader
         return true;
     }
 
-    private function buildMediaFilePackages(array $paths): array
+    private function buildMediaFilePackages(array $paths): Generator
     {
-        $mediaGroups = [];
         foreach($paths as $path => $mediaFilesInPath) {
             $mediaFileGroup = new MediaFilePackage();
             $mediaFileGroup->path = new SplFileInfo($path);
             $mediaFileGroup->mediaFile = array_shift($mediaFilesInPath);
 
-            /**
-             *
-             */
             foreach($mediaFilesInPath as $mediaFile) {
                 if(in_array($mediaFile->getExtension(), $this->noStackMediaFileExtensions)){
-                    $mediaGroups[] = clone $mediaFileGroup;
+                    yield clone $mediaFileGroup;
                     $mediaFileGroup->mediaFile = $mediaFile;
                     continue;
                 }
                 $mediaFileGroup->directoryFiles[] = $mediaFile;
             }
-            $mediaGroups[] = $mediaFileGroup;
+            yield $mediaFileGroup;
         }
-        return $mediaGroups;
-    }
-
-
-
-    private function groupMediaFilePackages(MediaFilePackage... $mediaFilePackages): array
-    {
-        $packageGroups = [];
-        foreach($mediaFilePackages as $package) {
-            $packageGroups[(string)$package->pageTemplate] ??= [];
-            $packageGroups[(string)$package->pageTemplate][] = $package;
-        }
-        return array_values($packageGroups);
     }
 }
