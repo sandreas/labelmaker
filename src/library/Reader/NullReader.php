@@ -14,7 +14,7 @@ class NullReader implements ReaderInterface
 
     public function read(): Generator
     {
-        yield null;
+        yield from [];
     }
 
     public function finish(): bool

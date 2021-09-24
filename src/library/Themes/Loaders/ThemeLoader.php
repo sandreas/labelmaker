@@ -1,7 +1,6 @@
 <?php
 
 namespace LabelMaker\Themes\Loaders;
-use Throwable;
 
 class ThemeLoader extends ThemeFileLoader
 {

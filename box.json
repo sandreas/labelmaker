@@ -3,5 +3,6 @@
   "main": "src/index.php",
   "output": "dist/labelmaker.phar",
   "check-requirements": false,
-  "files": ["vendor/twig/twig/src/TwigTest.php"]
+  "files": ["vendor/twig/twig/src/TwigTest.php"],
+  "directories-bin": ["src/themes/"]
 }

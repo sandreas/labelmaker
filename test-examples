@@ -1,0 +1,21 @@
+#!/bin/sh
+
+# ./build
+PATH="$PATH:dist/"
+
+#labelmaker.phar --page-template="samples/hello-world/hello-world.twig" --output-file="samples/hello-world/hello-world.pdf"
+#
+#labelmaker.phar --page-template="samples/hello-world/hello-world.twig" --page-template="samples/hello-world/hello-world.twig" --output-file="samples/hello-world/hello-world-multipage.pdf"
+#
+#labelmaker.phar --page-template="samples/numbers/numbers.twig" --data-hook="samples/numbers/data-hook.php" --output-file="samples/numbers/numbers.pdf"
+#
+#labelmaker.phar --page-template="samples/numbers/numbers.twig" --data-hook="samples/numbers/data-hook.php" --output-file="samples/numbers/numbers-multipage.pdf" --data-records-per-page="2"
+#
+#labelmaker.phar --theme="samples/theme-folder/"  --output-file="samples/theme-folder/theme-folder.pdf" --data-records-per-page="2"
+#
+#labelmaker.phar --theme="samples/use-csv-data-uri/"  --output-file="samples/use-csv-data-uri/use-csv-data-uri.pdf" --data-uri="samples/use-csv-data-uri/data.csv" --data-records-per-page="2"
+#
+#labelmaker.phar --theme="samples/use-csv-data-uri/"  --output-file="samples/use-csv-data-uri/use-csv-data-uri-noheader.pdf" --data-uri="csv://samples/use-csv-data-uri/data-noheader.csv?noheader=1&separator=%3B&enclosure='&escape=%2F" --data-records-per-page="2"
+
+labelmaker.phar --theme="labelmaker/phoniebox-audiobook/"  --output-file="samples/use-media-data-uri/use-media-data-uri.pdf" --data-uri="samples/use-media-data-uri/media/" --data-records-per-page="10"
+

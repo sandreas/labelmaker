@@ -24,6 +24,7 @@ use LabelMaker\Themes\Loaders\ThemeLoader;
 use LabelMaker\Themes\Loaders\ThemeFileLoader;
 use LabelMaker\Themes\Theme;
 use Mpdf\Mpdf;
+use SplFileInfo;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -140,11 +141,15 @@ class CreateCommand extends AbstractCommand
                 throw new Exception(sprintf("the location of --%s does not exist (realpath)", static::OPT_DATA_URI));
             }
 
+            $realPathObj = new SplFileInfo($realPath);
+            $ext = $realPathObj->isFile() ? $realPathObj->getExtension() : null;
+            $destinationScheme = in_array($ext, CreateOptions::FILE_EXTENSION_SCHEMES) ? $ext : CreateOptions::SCHEME_FILE;
+
             $encodedPathParts = array_map(function ($pathPart) {
                 return rawurlencode($pathPart);
             }, explode(DIRECTORY_SEPARATOR, $realPath));
 
-            $dataUri = sprintf("%s://%s", CreateOptions::SCHEME_FILE, implode("/", $encodedPathParts));
+            $dataUri = sprintf("%s://%s", $destinationScheme, ltrim(implode("/", $encodedPathParts), "/"));
         }
 
         $options = new CreateOptions();
@@ -178,11 +183,17 @@ class CreateCommand extends AbstractCommand
 
     /**
      * @param string $pdfEngine
+     * @param array $options
      * @return EngineInterface
      * @throws Exception
      */
     public function createPdfEngine(string $pdfEngine, array $options=[]): EngineInterface
     {
+        try  {
+            $cacheId = random_bytes(32);
+        } catch(Exception $e)  {
+            $cacheId = uniqid("", true);
+        }
         switch ($pdfEngine) {
             // https://mpdf.github.io/reference/mpdf-variables/overview.html
             case CreateOptions::PDF_ENGINE_MPDF:
@@ -190,7 +201,7 @@ class CreateCommand extends AbstractCommand
                     $options["img_dpi"] = 300;
                 }
                 // usage in phar fails with default tempdir
-                $options["tempDir"] ??= sys_get_temp_dir()."/".bin2hex(random_bytes(32));
+                $options["tempDir"] ??= sys_get_temp_dir()."/".bin2hex($cacheId);
                 if(!is_dir($options["tempDir"])) {
                     mkdir($options["tempDir"], 755, true);
                 }

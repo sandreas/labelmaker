@@ -21,7 +21,7 @@ class MpdfEngine implements EngineInterface
      * @return MemoryStream|null
      * @throws MpdfException
      */
-    public function htmlToPdf($html): ?MemoryStream
+    public function htmlToPdf(string $html): ?MemoryStream
     {
         $this->mpdf->WriteHTML($html);
         return new MemoryStream($this->mpdf->Output('', Destination::STRING_RETURN));

@@ -10,13 +10,16 @@ class CreateOptions
     const PDF_ENGINE_DOMPDF = "dompdf";
 
     const SCHEME_CSV = "csv";
-
     const SCHEME_FILE = "file";
+    const FILE_EXTENSION_SCHEMES = [
+        self::SCHEME_CSV
+    ];
 
     const DEFAULT_DOCUMENT_TEMPLATE = <<<EOT
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <title>labelmaker</title>
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
   <style>
   {{ css|raw }}

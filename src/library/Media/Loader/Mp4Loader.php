@@ -5,7 +5,6 @@ namespace LabelMaker\Media\Loader;
 use LabelMaker\Media\MediaFile;
 use LabelMaker\Streams\ImageMemoryStream;
 use LabelMaker\Streams\TypedMemoryStream;
-use MintWare\Streams\MemoryStream;
 
 class Mp4Loader extends FallbackLoader
 {

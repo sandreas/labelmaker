@@ -9,7 +9,7 @@ class MediaFileTagLoaderComposite implements MediaFileLoaderInterface
 {
     private getID3 $metaReader;
     /** @var MediaFileLoaderInterface[] */
-    private array $loaders = [];
+    private array $loaders;
 
 
     public function __construct(getID3 $metaReader, array $loaders)
@@ -22,7 +22,7 @@ class MediaFileTagLoaderComposite implements MediaFileLoaderInterface
     public function enrichMediaFile(MediaFile $file, ?array $metaDataContainer = null): MediaFile
     {
         $metaDataContainer ??= $this->metaReader->analyze($file);
-        $type = $metaDataContainer["fileformat"] ?? null;
+        $type = $metaDataContainer["fileformat"] ?? "";
         foreach($this->loaders as $loader) {
             if($loader->supportsType($type)) {
                 return $loader->enrichMediaFile($file, $metaDataContainer);

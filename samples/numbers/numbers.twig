@@ -1,0 +1,8 @@
+{# numbers.twig #}
+<div class="page-container {{ page ? 'lmk-next-page' : 'lmk-first-page' }}">
+    <ul>
+        {% for number in data %}
+            <li>{{ number }}</li>
+        {% endfor %}
+    </ul>
+</div>

@@ -12,7 +12,7 @@ class LabelMakerApi
         return call_user_func_array($name, $args);
     }
 
-    public function props($variable) {
+    public function props($variable): string {
         $props = [];
         if(is_iterable($variable)) {
             foreach($variable as $prop => $value) {
@@ -24,11 +24,11 @@ class LabelMakerApi
         return implode(", ", $props);
     }
 
-    public function printr($variable) {
+    public function printr($variable):string {
         return print_r($variable, true);
     }
 
-    public function varexport($variable) {
+    public function varexport($variable):?string {
         return var_export($variable, true);
     }
 

@@ -17,7 +17,7 @@ cover, series, part #}
             {% set cover = pageItem.mediaFile.cover %}
         {% endif %}
 
-        {% set metaDataFilePath = pageItem.path ~ '/metadata.json' %}
+        {% set metaDataFilePath = pageItem.path ~ '/labelmaker.json' %}
         {% set metaData = [] %}
 
         {% if api.call('file_exists', metaDataFilePath) %}

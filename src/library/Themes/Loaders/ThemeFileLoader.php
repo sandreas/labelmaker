@@ -2,14 +2,15 @@
 
 namespace LabelMaker\Themes\Loaders;
 
+use Exception;
 use LabelMaker\Themes\Theme;
 
 class ThemeFileLoader extends AbstractThemeFileLoader
 {
-    private ?string $documentTemplateFile=null;
-    private ?string $cssFile = null;
-    private array $pageTemplateFiles = [];
-    private ?string $dataHookFile = null;
+    private ?string $documentTemplateFile;
+    private ?string $cssFile;
+    private array $pageTemplateFiles;
+    private ?string $dataHookFile;
 
 
     public function __construct(?string $documentFile, ?string $cssFile, array $pageTemplateFiles, ?string $dataHookFile)
@@ -20,6 +21,9 @@ class ThemeFileLoader extends AbstractThemeFileLoader
         $this->dataHookFile = $dataHookFile;
     }
 
+    /**
+     * @throws Exception
+     */
     public function load(?Theme $theme): ?Theme
     {
         if ($theme === null) {

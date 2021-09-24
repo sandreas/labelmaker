@@ -1,0 +1,14 @@
+{# numbers.twig #}
+<div class="page-container {{ page ? 'lmk-next-page' : 'lmk-first-page' }}">
+    <table style="width:100%;border-collapse: collapse">
+        <tbody>
+            {% for row in data %}
+            <tr>
+                {% for value in row %}
+                    <td style="width:50%;border:1px solid black;">{{ value }}</td>
+                {% endfor %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

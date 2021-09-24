@@ -53,8 +53,9 @@ class PdfRenderer
         }
 
         if (!$dataRecords->valid() || $this->options->dataRecordsPerPage <= 0) {
+            $records = $dataRecords->valid() ? iterator_to_array($dataRecords) : [];
             foreach ($theme->pageTemplates as $index => $pageTemplate) {
-                $htmlPages[] = $this->renderPageTemplate($pageTemplate, $index, iterator_to_array($dataRecords));
+                $htmlPages[] = $this->renderPageTemplate($pageTemplate, $index, $records);
             }
         } else {
             $recordGroup = [];

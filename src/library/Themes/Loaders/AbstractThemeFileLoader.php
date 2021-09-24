@@ -3,7 +3,6 @@
 namespace LabelMaker\Themes\Loaders;
 
 use Closure;
-use Exception;
 use LabelMaker\Themes\Theme;
 use Throwable;
 
@@ -36,27 +35,24 @@ abstract class AbstractThemeFileLoader implements ThemeLoaderInterface
      * @param string|null $filePath
      * @param Closure|null $default
      * @return Closure|null
-     * @throws Exception
      */
     protected function loadDataHook(?string $filePath, ?Closure $default = null): ?Closure
     {
         if($filePath === null || !$this->fileExistsWithWrapperSupport($filePath)) {
             return $default;
         }
-
         ob_start();
-        $dataHook = @include($filePath);
-        ob_end_clean();
-
-//        $output = ob_get_clean();
-//        if(trim($output) !== "") {
-//            throw new Exception(sprintf("output in data hook file %s is not allowed - it must return a function: return function(\$data) { /* ... */ };", $filePath));
-//        }
-
-
-        if (is_callable($dataHook)) {
-            return Closure::fromCallable($dataHook);
+        try {
+            $dataHook = @include($filePath);
+            if (is_callable($dataHook)) {
+                return Closure::fromCallable($dataHook);
+            }
+        } catch (Throwable $t) {
+            return $default;
+        } finally {
+            ob_end_clean();
         }
+
         return $default;
     }
 
