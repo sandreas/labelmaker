@@ -89,5 +89,17 @@ class LabelMakerApi
         return json_decode(file_get_contents($file), $associative, $depth, $flags);
     }
 
+    public function jsonMergeFile($file, $object){
+        $data = $this->jsonLoadFile($file);
+        foreach ($data as $key => $value) {
+            if(is_object($object) && property_exists($object, $key)) {
+                $object->{$key} = $value;
+            } else if (is_array($object))  {
+                $object[$key] = $value;
+            }
+        }
+        return $object;
+    }
+
 
 }

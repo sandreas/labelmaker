@@ -21,7 +21,7 @@ cover, series, part #}
         {% set metaData = [] %}
 
         {% if api.call('file_exists', metaDataFilePath) %}
-            {% set metaData = api.jsonLoadFile(metaDataFilePath) %}
+            {% set metaData = api.jsonMergeFile(metaDataFilePath, pageItem.mediaFile) %}
         {% else %}
             {% set metaData = pageItem.mediaFile %}
         {% endif %}
