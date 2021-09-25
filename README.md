@@ -2,6 +2,10 @@
 
 `labelmaker` generates PDF files from HTML-Templates based on the [TWIG](https://twig.symfony.com/) template engine. `labelmaker` was created to build labels for the well known [RPi-Jukebox-RFID](https://github.com/MiczFlor/RPi-Jukebox-RFID) and during development I found out, that the tool has much more potential.
 
+## Download
+
+You should download and install the [latest release](https://github.com/sandreas/labelmaker/releases/latest)
+
 ## Documentation
 The [full documentation is available here](https://pilabor.com/labelmaker) 
 
