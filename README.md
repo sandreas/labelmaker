@@ -7,5 +7,7 @@ The [full documentation is available here](https://pilabor.com/labelmaker)
 
 ## Previews
 
-- [CSV Template](https://github.com/sandreas/labelmaker/samples/use-csv-data-uri/use-csv-data-uri.pdf)
-- [Media Template Phoniebox](https://github.com/sandreas/labelmaker/samples/use-media-data-url/use-media-data-uri-hook.pdf)
+- [CSV Template](https://github.com/sandreas/labelmaker/blob/main/samples/use-csv-data-uri/use-csv-data-uri.pdf)
+- [Media Template Phoniebox](https://github.com/sandreas/labelmaker/blob/main/samples/use-media-data-uri/use-media-data-uri-hook.pdf)
+
+![PDF Preview](img/articles/labelmaker/pdf-preview.png)
