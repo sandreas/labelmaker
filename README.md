@@ -11,3 +11,6 @@ The [full documentation is available here](https://pilabor.com/labelmaker)
 - [Media Template Phoniebox](https://github.com/sandreas/labelmaker/blob/main/samples/use-media-data-uri/use-media-data-uri-hook.pdf)
 
 ![PDF Preview](samples/pdf-preview.png)
+
+## Development notes
+Due to a change in `mpdf` that I made to support `PHAR` usage, currently it is not possible to build `labelmaker`. The release `v8.0.14` should contain this fix. I will update the dependencies as soon as possible.
