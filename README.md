@@ -13,4 +13,4 @@ The [full documentation is available here](https://pilabor.com/labelmaker)
 ![PDF Preview](samples/pdf-preview.png)
 
 ## Development notes
-Due to a change in `mpdf` that I made to support `PHAR` usage, currently it is not possible to build `labelmaker`. The release `v8.0.14` should contain this fix. I will update the dependencies as soon as possible.
+Due to a change in `mpdf` that I made to support `PHAR` usage, currently it is not possible to build `labelmaker` from source. The `mpdf` release `v8.0.14` should contain my fix, then it should be no problem. I will update the dependencies as soon as possible.
